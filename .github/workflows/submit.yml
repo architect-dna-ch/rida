@@ -1,0 +1,224 @@
+name: Submit to App Store Review
+
+on:
+  workflow_dispatch:
+
+jobs:
+  submit:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Submit to App Store Review
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          echo "$ASC_PRIVATE_KEY" > /tmp/asc_key.p8
+          pip3 install PyJWT cryptography requests --quiet --break-system-packages
+
+          python3 << 'PYEOF'
+          import jwt, time, requests, os, sys
+
+          key_id    = os.environ["ASC_KEY_ID"]
+          issuer_id = os.environ["ASC_ISSUER_ID"]
+          private_key = open("/tmp/asc_key.p8").read()
+          bundle_id = "ch.architectdna.rida"
+
+          def make_token():
+              payload = {"iss": issuer_id, "iat": int(time.time()),
+                         "exp": int(time.time()) + 1200, "aud": "appstoreconnect-v1"}
+              return jwt.encode(payload, private_key, algorithm="ES256", headers={"kid": key_id})
+
+          def H():
+              return {"Authorization": f"Bearer {make_token()}", "Content-Type": "application/json"}
+
+          BASE = "https://api.appstoreconnect.apple.com/v1"
+
+          # Find the app
+          r = requests.get(f"{BASE}/apps?filter[bundleId]={bundle_id}", headers=H())
+          r.raise_for_status()
+          app = r.json()["data"][0]
+          app_id = app["id"]
+          print(f"App: {app['attributes']['name']} ({app_id})")
+
+          # Get editable version
+          r = requests.get(f"{BASE}/apps/{app_id}/appStoreVersions?filter[platform]=IOS", headers=H())
+          r.raise_for_status()
+          versions = r.json()["data"]
+          editable = {"PREPARE_FOR_SUBMISSION","DEVELOPER_REJECTED","REJECTED","METADATA_REJECTED","INVALID_BINARY"}
+          version = next((v for v in versions if v["attributes"]["appStoreState"] in editable), versions[0] if versions else None)
+          if not version: print("No version found"); sys.exit(1)
+          version_id = version["id"]
+          print(f"Version: {version['attributes']['versionString']} — {version['attributes']['appStoreState']}")
+
+          # Find latest valid build
+          r = requests.get(f"{BASE}/builds?filter[app]={app_id}&sort=-uploadedDate&limit=5", headers=H())
+          r.raise_for_status()
+          builds = [b for b in r.json()["data"] if b["attributes"]["processingState"] == "VALID"]
+          if not builds: print("No VALID build"); sys.exit(1)
+          build_id = builds[0]["id"]
+          print(f"Build: {builds[0]['attributes']['version']} ({build_id})")
+
+          # Set export compliance
+          r = requests.patch(f"{BASE}/builds/{build_id}", headers=H(),
+              json={"data": {"type": "builds", "id": build_id,
+                             "attributes": {"usesNonExemptEncryption": False}}})
+          print(f"Export compliance: {r.status_code}")
+
+          # Set copyright
+          r = requests.patch(f"{BASE}/appStoreVersions/{version_id}", headers=H(),
+              json={"data": {"type": "appStoreVersions", "id": version_id,
+                             "attributes": {"copyright": "2026 Architect-DNA"}}})
+          print(f"Set copyright: {r.status_code}")
+
+          # Set content rights
+          r = requests.patch(f"{BASE}/apps/{app_id}", headers=H(),
+              json={"data": {"type": "apps", "id": app_id,
+                             "attributes": {"contentRightsDeclaration": "DOES_NOT_USE_THIRD_PARTY_CONTENT"}}})
+          print(f"Content rights: {r.status_code}" + ("" if r.status_code in (200,204) else f" {r.text[:200]}"))
+
+          # Attach build to version
+          r = requests.patch(f"{BASE}/appStoreVersions/{version_id}", headers=H(),
+              json={"data": {"type": "appStoreVersions", "id": version_id,
+                             "relationships": {"build": {"data": {"type": "builds", "id": build_id}}}}})
+          print(f"Attach build: {r.status_code}")
+
+          # Set pricing (free — Rida is free)
+          r2 = requests.post(f"{BASE}/appPriceSchedules", headers=H(),
+              json={
+                  "data": {
+                      "type": "appPriceSchedules",
+                      "relationships": {
+                          "app": {"data": {"type": "apps", "id": app_id}},
+                          "baseTerritory": {"data": {"type": "territories", "id": "USA"}},
+                          "manualPrices": {"data": [{"type": "appPrices", "id": "p0", "tempId": "p0"}]}
+                      }
+                  },
+                  "included": [{
+                      "type": "appPrices", "id": "p0",
+                      "attributes": {"startDate": None},
+                      "relationships": {"appPriceTier": {"data": {"type": "appPriceTiers", "id": "0"}}}
+                  }]
+              })
+          print(f"Set price free: {r2.status_code}" + ("" if r2.status_code in (200,201,409) else f" {r2.text[:200]}"))
+
+          # Upload screenshots
+          import hashlib, base64, pathlib
+
+          def upload_screenshots(localization_id, display_type, image_paths):
+              image_paths = [p for p in image_paths if p.exists()]
+              if not image_paths:
+                  print(f"  {display_type}: no images found, skipping")
+                  return None
+              r = requests.get(f"{BASE}/appStoreVersionLocalizations/{localization_id}/appScreenshotSets", headers=H())
+              existing = {s["attributes"]["screenshotDisplayType"]: s["id"] for s in r.json().get("data", [])}
+              if display_type in existing:
+                  old_set_id = existing[display_type]
+                  r2 = requests.get(f"{BASE}/appScreenshotSets/{old_set_id}/appScreenshots", headers=H())
+                  for ss in r2.json().get("data", []):
+                      requests.delete(f"{BASE}/appScreenshots/{ss['id']}", headers=H())
+                  requests.delete(f"{BASE}/appScreenshotSets/{old_set_id}", headers=H())
+                  print(f"  {display_type}: wiped old set")
+              r = requests.post(f"{BASE}/appScreenshotSets", headers=H(),
+                  json={"data": {"type": "appScreenshotSets",
+                                 "attributes": {"screenshotDisplayType": display_type},
+                                 "relationships": {"appStoreVersionLocalization":
+                                     {"data": {"type": "appStoreVersionLocalizations", "id": localization_id}}}}})
+              if r.status_code not in (200, 201):
+                  print(f"Create set {display_type}: {r.status_code} {r.text[:100]}"); return None
+              set_id = r.json()["data"]["id"]
+
+              for img_path in image_paths:
+                  img_bytes = pathlib.Path(img_path).read_bytes()
+                  md5 = base64.b64encode(hashlib.md5(img_bytes).digest()).decode()
+                  r = requests.post(f"{BASE}/appScreenshots", headers=H(),
+                      json={"data": {"type": "appScreenshots",
+                                     "attributes": {"fileName": pathlib.Path(img_path).name,
+                                                    "fileSize": len(img_bytes)},
+                                     "relationships": {"appScreenshotSet":
+                                         {"data": {"type": "appScreenshotSets", "id": set_id}}}}})
+                  if r.status_code not in (200, 201):
+                      print(f"Reserve slot: {r.status_code} {r.text[:100]}"); continue
+                  ss = r.json()["data"]
+                  ss_id = ss["id"]
+                  upload_ops = ss["attributes"]["uploadOperations"]
+                  for op in upload_ops:
+                      chunk = img_bytes[op["offset"]:op["offset"]+op["length"]]
+                      op_headers = {h["name"]: h["value"] for h in op["requestHeaders"]}
+                      requests.put(op["url"], headers=op_headers, data=chunk)
+                  r = requests.patch(f"{BASE}/appScreenshots/{ss_id}", headers=H(),
+                      json={"data": {"type": "appScreenshots", "id": ss_id,
+                                     "attributes": {"uploaded": True,
+                                                    "sourceFileChecksum": hashlib.md5(img_bytes).hexdigest()}}})
+                  print(f"  Screenshot {pathlib.Path(img_path).name}: {r.status_code}")
+              return set_id
+
+          r = requests.get(f"{BASE}/appStoreVersions/{version_id}/appStoreVersionLocalizations", headers=H())
+          locs = r.json()["data"]
+          if locs:
+              loc_id = locs[0]["id"]
+              print(f"Uploading screenshots to localization {loc_id}")
+              iphone_shots = sorted(pathlib.Path("screenshots").glob("[0-9]*.png"))
+              ipad_shots   = sorted(pathlib.Path("screenshots/ipad").glob("*.png"))
+              upload_screenshots(loc_id, "APP_IPHONE_65", iphone_shots)
+              upload_screenshots(loc_id, "APP_IPAD_PRO_3GEN_129", ipad_shots)
+
+          # Find or create review submission
+          submission_id = None
+          r = requests.get(f"{BASE}/reviewSubmissions?filter[app]={app_id}&filter[platform]=IOS&limit=100", headers=H())
+          if r.status_code == 200:
+              for sub in r.json().get("data", []):
+                  sub_state = sub["attributes"].get("state","")
+                  sub_id = sub["id"]
+                  print(f"  Submission {sub_id}: state={sub_state}")
+                  if sub_state in ("WAITING_FOR_REVIEW", "IN_REVIEW", "COMPLETE"):
+                      print("Already in review or complete!"); sys.exit(0)
+                  elif sub_state in ("READY_FOR_REVIEW", "DRAFT") and not submission_id:
+                      submission_id = sub_id
+
+          if not submission_id:
+              r = requests.post(f"{BASE}/reviewSubmissions", headers=H(),
+                  json={"data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"},
+                                 "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}})
+              if r.status_code not in (200, 201):
+                  print(f"Create submission: {r.status_code} {r.text}"); sys.exit(1)
+              submission_id = r.json()["data"]["id"]
+              print(f"Created submission: {submission_id}")
+          else:
+              print(f"Reusing submission: {submission_id}")
+
+          # Add version to submission if not already there
+          ri = requests.get(f"{BASE}/reviewSubmissions/{submission_id}/items", headers=H())
+          existing_versions = [i.get("relationships",{}).get("appStoreVersion",{}).get("data",{}).get("id") for i in ri.json().get("data",[])]
+          if version_id not in existing_versions:
+              r = requests.post(f"{BASE}/reviewSubmissionItems", headers=H(),
+                  json={"data": {"type": "reviewSubmissionItems",
+                                 "relationships": {
+                                     "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": submission_id}},
+                                     "appStoreVersion": {"data": {"type": "appStoreVersions", "id": version_id}}
+                                 }}})
+              print(f"Add version item: {r.status_code}" + ("" if r.status_code in (200,201) else f" {r.text[:500]}"))
+
+          # Submit for review
+          submitted = False
+          BASE2 = "https://api.appstoreconnect.apple.com/v2"
+          for method, url, body in [
+              ("POST", f"{BASE2}/reviewSubmissions/{submission_id}/actions/submit", {}),
+              ("PATCH", f"{BASE}/reviewSubmissions/{submission_id}", {"data": {"type": "reviewSubmissions", "id": submission_id, "attributes": {"submitted": True}}}),
+              ("POST", f"{BASE}/reviewSubmissions/{submission_id}/actions/submit", {}),
+          ]:
+              r = getattr(requests, method.lower())(url, headers=H(), json=body)
+              print(f"Submit [{method} .../{'/'.join(url.split('/')[-2:])}]: {r.status_code} {r.text[:500]}")
+              if r.status_code in (200, 201, 204):
+                  print("SUBMITTED FOR APP STORE REVIEW!")
+                  submitted = True
+                  break
+              elif r.status_code == 409 and "WAITING_FOR_REVIEW" in r.text:
+                  print("Already in review!"); submitted = True; break
+          if not submitted:
+              print("Could not submit via API — check App Store Connect manually"); sys.exit(1)
+          PYEOF

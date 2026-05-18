@@ -1,0 +1,104 @@
+name: Build & Submit to TestFlight
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export for Capacitor
+        run: |
+          mv app/api _api_routes_tmp
+          cleanup() { mv _api_routes_tmp app/api 2>/dev/null || true; }
+          trap cleanup EXIT
+          BUILD_TARGET=capacitor \
+            NEXT_PUBLIC_API_BASE=https://rida.architect-dna.ch \
+            npx next build
+          npx cap sync ios
+
+      - name: Import Distribution Certificate
+        env:
+          DIST_P12_BASE64: ${{ secrets.DIST_P12_BASE64 }}
+          DIST_P12_PASSWORD: ${{ secrets.DIST_P12_PASSWORD }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 7200 -u build.keychain
+
+          echo "$DIST_P12_BASE64" | base64 --decode > /tmp/dist.p12
+          security import /tmp/dist.p12 -k build.keychain -P "$DIST_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/xcodebuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+
+      - name: Install Provisioning Profile
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PP_PATH="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PP_PATH"
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PP_PATH/Rida.mobileprovision"
+          echo "Profile UUID: $(security cms -D -i "$PP_PATH/Rida.mobileprovision" 2>/dev/null | grep -A1 UUID | tail -1 | tr -d ' <>/string')"
+
+      - name: Resolve Swift Packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App
+
+      - name: Build IPA
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="Rida Distribution" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM=V28MG47TZC
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportPath build/
+
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          echo "$ASC_PRIVATE_KEY" > /tmp/asc_key.p8
+          node -e "
+            const fs = require('fs');
+            const key = {
+              key_id: process.env.ASC_KEY_ID,
+              issuer_id: process.env.ASC_ISSUER_ID,
+              key: fs.readFileSync('/tmp/asc_key.p8', 'utf8'),
+              duration: 1200,
+              in_house: false
+            };
+            fs.writeFileSync('/tmp/api_key.json', JSON.stringify(key));
+          "
+          gem install fastlane --no-document
+          fastlane run upload_to_testflight \
+            ipa:"build/App.ipa" \
+            skip_waiting_for_build_processing:true \
+            api_key_path:"/tmp/api_key.json"
