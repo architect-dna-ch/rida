@@ -1,65 +1,70 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 
-export default function Home() {
+const SalahTab     = dynamic(() => import("@/components/salah/SalahTab"),         { ssr: false });
+const NutritionTab = dynamic(() => import("@/components/nutrition/NutritionTab"), { ssr: false });
+const DhikrTab     = dynamic(() => import("@/components/dhikr/DhikrTab"),         { ssr: false });
+const HifzTab      = dynamic(() => import("@/components/hifz/HifzTab"),           { ssr: false });
+const SettingsTab  = dynamic(() => import("@/components/SettingsTab"),             { ssr: false });
+
+type Tab = "salah" | "nutrition" | "dhikr" | "hifz" | "settings";
+
+const TABS: { id: Tab; label: string; arabic: string; icon: string }[] = [
+  { id: "salah",     label: "Salah",     arabic: "صلاة",    icon: "🕌" },
+  { id: "nutrition", label: "Ernährung", arabic: "تغذية",   icon: "🥗" },
+  { id: "dhikr",     label: "Dhikr",     arabic: "ذكر",     icon: "📿" },
+  { id: "hifz",      label: "Hifz",      arabic: "حفظ",     icon: "📖" },
+  { id: "settings",  label: "Einst.",    arabic: "إعدادات", icon: "⚙" },
+];
+
+export default function RidaApp() {
+  const [tab, setTab] = useState<Tab>("salah");
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh", background: "var(--bg)" }}>
+      <header style={{ background: "var(--bg2)", borderBottom: "1px solid var(--border)", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div>
+          <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>Rida</span>
+          <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 10 }}>رِضا · Muslim Ecosystem</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        <span style={{ color: "var(--text3)", fontSize: 10, letterSpacing: "0.1em" }}>
+          {TABS.find(t => t.id === tab)?.arabic}
+        </span>
+      </header>
+
+      <main style={{ flex: 1, overflow: "auto", paddingBottom: 64 }}>
+        {tab === "salah"     && <SalahTab />}
+        {tab === "nutrition" && <NutritionTab />}
+        {tab === "dhikr"     && <DhikrTab />}
+        {tab === "hifz"      && <HifzTab />}
+        {tab === "settings"  && <SettingsTab />}
       </main>
+
+      <nav style={{
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        background: "var(--bg2)", borderTop: "1px solid var(--border)",
+        display: "flex", height: 60,
+        zIndex: 100,
+      }}>
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+              gap: 2, border: "none", background: "transparent", cursor: "pointer",
+              borderTop: tab === t.id ? "2px solid var(--green)" : "2px solid transparent",
+              transition: "border-color 0.15s",
+            }}
+          >
+            <span style={{ fontSize: 18 }}>{t.icon}</span>
+            <span style={{ fontSize: 9, letterSpacing: "0.08em", color: tab === t.id ? "var(--green)" : "var(--text3)", textTransform: "uppercase" }}>
+              {t.label}
+            </span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
