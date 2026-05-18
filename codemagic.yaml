@@ -1,0 +1,53 @@
+workflows:
+  ios-release:
+    name: Rida iOS Release
+    max_build_duration: 60
+    environment:
+      node: 20.11.0
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: ch.architectdna.rida
+        APP_STORE_APPLE_ID: 6748792462  # replace after creating App Store Connect listing
+      groups:
+        - app_store_credentials  # API key group in Codemagic
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build static export for Capacitor
+        script: |
+          mv app/api _api_routes_tmp
+          BUILD_TARGET=capacitor \
+            NEXT_PUBLIC_API_BASE=https://rida.architect-dna.ch \
+            npx next build
+          mv _api_routes_tmp app/api
+
+      - name: Sync Capacitor
+        script: npx cap sync ios
+
+      - name: Set bundle version
+        script: |
+          LATEST_BUILD=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID" --platform IOS 2>/dev/null || echo "0")
+          agvtool new-version -all $((LATEST_BUILD + 1))
+        working_directory: ios/App
+
+      - name: Build IPA
+        script: |
+          xcode-project use-profiles
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme App
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers"
