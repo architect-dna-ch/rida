@@ -7,8 +7,8 @@ const MODES: { id: FastMode; label: string; sub: string; hours: number }[] = [
   { id: "16:8",   label: "16:8",   sub: "Intermittent", hours: 16 },
   { id: "18:6",   label: "18:6",   sub: "Extended",     hours: 18 },
   { id: "20:4",   label: "20:4",   sub: "Warrior",      hours: 20 },
-  { id: "5:2",    label: "5:2",    sub: "Weekly",       hours: 24 },
-  { id: "sunnah", label: "Sunnah", sub: "Mon & Thu",    hours: 24 },
+  { id: "5:2",    label: "5:2",    sub: "2 days/week",   hours: 24 },
+  { id: "sunnah", label: "Sunnah", sub: "Dawn–Sunset",  hours: 14 },
   { id: "custom", label: "Custom", sub: "Set hours",    hours: 16 },
 ];
 
