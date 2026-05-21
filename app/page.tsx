@@ -4,17 +4,15 @@ import dynamic from "next/dynamic";
 
 const SalahTab     = dynamic(() => import("@/components/salah/SalahTab"),         { ssr: false });
 const NutritionTab = dynamic(() => import("@/components/nutrition/NutritionTab"), { ssr: false });
-const DhikrTab     = dynamic(() => import("@/components/dhikr/DhikrTab"),         { ssr: false });
-const HifzTab      = dynamic(() => import("@/components/hifz/HifzTab"),           { ssr: false });
+const FeatureTab   = dynamic(() => import("@/components/feature/FeatureTab"),     { ssr: false });
 const SettingsTab  = dynamic(() => import("@/components/SettingsTab"),             { ssr: false });
 
-type Tab = "salah" | "nutrition" | "dhikr" | "hifz" | "settings";
+type Tab = "salah" | "nutrition" | "feature" | "settings";
 
 const TABS: { id: Tab; label: string; arabic: string; icon: string }[] = [
   { id: "salah",     label: "Salah",     arabic: "صلاة",    icon: "🕌" },
   { id: "nutrition", label: "Ernährung", arabic: "تغذية",   icon: "🥗" },
-  { id: "dhikr",     label: "Dhikr",     arabic: "ذكر",     icon: "📿" },
-  { id: "hifz",      label: "Hifz",      arabic: "حفظ",     icon: "📖" },
+  { id: "feature",   label: "Fast",      arabic: "صيام",    icon: "⏱" },
   { id: "settings",  label: "Einst.",    arabic: "إعدادات", icon: "⚙" },
 ];
 
@@ -36,8 +34,7 @@ export default function RidaApp() {
       <main style={{ flex: 1, overflow: "auto", paddingBottom: 64 }}>
         {tab === "salah"     && <SalahTab />}
         {tab === "nutrition" && <NutritionTab />}
-        {tab === "dhikr"     && <DhikrTab />}
-        {tab === "hifz"      && <HifzTab />}
+        {tab === "feature"   && <FeatureTab />}
         {tab === "settings"  && <SettingsTab />}
       </main>
 
