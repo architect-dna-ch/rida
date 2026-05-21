@@ -1,23 +1,34 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
-const SalahTab     = dynamic(() => import("@/components/salah/SalahTab"),         { ssr: false });
-const NutritionTab = dynamic(() => import("@/components/nutrition/NutritionTab"), { ssr: false });
-const FeatureTab   = dynamic(() => import("@/components/feature/FeatureTab"),     { ssr: false });
-const SettingsTab  = dynamic(() => import("@/components/SettingsTab"),             { ssr: false });
+const SalahTab   = dynamic(() => import("@/components/salah/SalahTab"),     { ssr: false });
+const FeatureTab = dynamic(() => import("@/components/feature/FeatureTab"), { ssr: false });
+const SettingsTab = dynamic(() => import("@/components/SettingsTab"),        { ssr: false });
 
-type Tab = "salah" | "nutrition" | "feature" | "settings";
+type Tab = "salah" | "feature" | "settings";
 
 const TABS: { id: Tab; label: string; arabic: string; icon: string }[] = [
-  { id: "salah",     label: "Salah",     arabic: "صلاة",    icon: "🕌" },
-  { id: "nutrition", label: "Ernährung", arabic: "تغذية",   icon: "🥗" },
-  { id: "feature",   label: "Fast",      arabic: "صيام",    icon: "⏱" },
-  { id: "settings",  label: "Einst.",    arabic: "إعدادات", icon: "⚙" },
+  { id: "salah",    label: "Salah", arabic: "صلاة",    icon: "🕌" },
+  { id: "feature",  label: "Fast",  arabic: "صيام",    icon: "⏱" },
+  { id: "settings", label: "Einst.", arabic: "إعدادات", icon: "⚙" },
 ];
 
 export default function RidaApp() {
   const [tab, setTab] = useState<Tab>("salah");
+  const [light, setLight] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("rida_theme");
+    if (saved === "light") { setLight(true); document.documentElement.classList.add("light"); }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !light;
+    setLight(next);
+    if (next) { document.documentElement.classList.add("light"); localStorage.setItem("rida_theme","light"); }
+    else       { document.documentElement.classList.remove("light"); localStorage.setItem("rida_theme","dark"); }
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100dvh", background: "var(--bg)" }}>
@@ -26,16 +37,20 @@ export default function RidaApp() {
           <span style={{ color: "var(--text)", fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>Rida</span>
           <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 10 }}>رِضا · Muslim Ecosystem</span>
         </div>
-        <span style={{ color: "var(--text3)", fontSize: 10, letterSpacing: "0.1em" }}>
-          {TABS.find(t => t.id === tab)?.arabic}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ color: "var(--text3)", fontSize: 10, letterSpacing: "0.1em" }}>
+            {TABS.find(t => t.id === tab)?.arabic}
+          </span>
+          <button onClick={toggleTheme} style={{ background: "var(--bg3)", border: "1px solid var(--border2)", color: "var(--text2)", fontSize: 14, borderRadius: 20, padding: "3px 10px", cursor: "pointer" }}>
+            {light ? "🌙" : "☀️"}
+          </button>
+        </div>
       </header>
 
       <main style={{ flex: 1, overflow: "auto", paddingBottom: 64 }}>
-        {tab === "salah"     && <SalahTab />}
-        {tab === "nutrition" && <NutritionTab />}
-        {tab === "feature"   && <FeatureTab />}
-        {tab === "settings"  && <SettingsTab />}
+        {tab === "salah"   && <SalahTab />}
+        {tab === "feature" && <FeatureTab />}
+        {tab === "settings" && <SettingsTab />}
       </main>
 
       <nav style={{

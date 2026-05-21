@@ -17,5 +17,21 @@
   --font:    ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
 }
 
+.light {
+  --bg:      #ffffff;
+  --bg2:     #f4f4f4;
+  --bg3:     #ebebeb;
+  --border:  #e0e0e0;
+  --border2: #cccccc;
+  --text:    #0a0a0a;
+  --text2:   #525252;
+  --text3:   #9a9a9a;
+  --green:   #16a34a;
+  --amber:   #d97706;
+  --blue:    #2563eb;
+  --purple:  #7c3aed;
+  --teal:    #0d9488;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: var(--font); }
