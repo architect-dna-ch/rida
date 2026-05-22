@@ -2,16 +2,18 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
-const SalahTab   = dynamic(() => import("@/components/salah/SalahTab"),     { ssr: false });
-const FeatureTab = dynamic(() => import("@/components/feature/FeatureTab"), { ssr: false });
-const SettingsTab = dynamic(() => import("@/components/SettingsTab"),        { ssr: false });
+const SalahTab     = dynamic(() => import("@/components/salah/SalahTab"),         { ssr: false });
+const NutritionTab = dynamic(() => import("@/components/nutrition/NutritionTab"), { ssr: false });
+const FeatureTab   = dynamic(() => import("@/components/feature/FeatureTab"),     { ssr: false });
+const SettingsTab  = dynamic(() => import("@/components/SettingsTab"),             { ssr: false });
 
-type Tab = "salah" | "feature" | "settings";
+type Tab = "salah" | "nutrition" | "feature" | "settings";
 
 const TABS: { id: Tab; label: string; arabic: string; icon: string }[] = [
-  { id: "salah",    label: "Salah", arabic: "صلاة",    icon: "🕌" },
-  { id: "feature",  label: "Fast",  arabic: "صيام",    icon: "⏱" },
-  { id: "settings", label: "Einst.", arabic: "إعدادات", icon: "⚙" },
+  { id: "salah",     label: "Salah",     arabic: "صلاة",    icon: "🕌" },
+  { id: "nutrition", label: "Ernährung", arabic: "تغذية",   icon: "🥗" },
+  { id: "feature",   label: "Fast",      arabic: "صيام",    icon: "⏱" },
+  { id: "settings",  label: "Einst.",    arabic: "إعدادات", icon: "⚙" },
 ];
 
 export default function RidaApp() {
@@ -48,9 +50,10 @@ export default function RidaApp() {
       </header>
 
       <main style={{ flex: 1, overflow: "auto", paddingBottom: 64 }}>
-        {tab === "salah"   && <SalahTab />}
-        {tab === "feature" && <FeatureTab />}
-        {tab === "settings" && <SettingsTab />}
+        {tab === "salah"     && <SalahTab />}
+        {tab === "nutrition" && <NutritionTab />}
+        {tab === "feature"   && <FeatureTab />}
+        {tab === "settings"  && <SettingsTab />}
       </main>
 
       <nav style={{
