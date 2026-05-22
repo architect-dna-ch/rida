@@ -3,13 +3,13 @@ import { useState, useEffect, useRef } from "react";
 
 type FastMode = "16:8" | "18:6" | "20:4" | "5:2" | "custom" | "sunnah";
 
-const MODES: { id: FastMode; label: string; sub: string; hours: number }[] = [
-  { id: "16:8",   label: "16:8",   sub: "Intermittent", hours: 16 },
-  { id: "18:6",   label: "18:6",   sub: "Extended",     hours: 18 },
-  { id: "20:4",   label: "20:4",   sub: "Warrior",      hours: 20 },
-  { id: "5:2",    label: "5:2",    sub: "2 days/week",   hours: 24 },
-  { id: "sunnah", label: "Sunnah", sub: "Dawn–Sunset",  hours: 14 },
-  { id: "custom", label: "Custom", sub: "Set hours",    hours: 16 },
+const MODES: { id: FastMode; label: string; sub: string; hours: number; pro: boolean }[] = [
+  { id: "16:8",   label: "16:8",   sub: "Intermittent", hours: 16, pro: false },
+  { id: "18:6",   label: "18:6",   sub: "Extended",     hours: 18, pro: false },
+  { id: "20:4",   label: "20:4",   sub: "Warrior",      hours: 20, pro: true  },
+  { id: "5:2",    label: "5:2",    sub: "2 days/week",  hours: 24, pro: true  },
+  { id: "sunnah", label: "Sunnah", sub: "Dawn–Sunset",  hours: 14, pro: true  },
+  { id: "custom", label: "Custom", sub: "Set hours",    hours: 16, pro: true  },
 ];
 
 function getPhase(elapsedH: number): { label: string; color: string } {
@@ -38,6 +38,7 @@ export default function FeatureTab() {
   const [startTime, setStartTime]     = useState<number | null>(null);
   const [now, setNow]                 = useState(Date.now());
   const [history, setHistory]         = useState<{ date: string; hours: number; mode: string }[]>([]);
+  const [isPro, setIsPro]             = useState(false);
   const ticker = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -45,6 +46,10 @@ export default function FeatureTab() {
     const h = localStorage.getItem("rida_fast_history");
     if (s) setStartTime(parseInt(s));
     if (h) setHistory(JSON.parse(h));
+    try {
+      const settings = JSON.parse(localStorage.getItem("rida_settings") || "{}");
+      setIsPro(settings.plan === "pro");
+    } catch {}
     ticker.current = setInterval(() => setNow(Date.now()), 1000);
     return () => { if (ticker.current) clearInterval(ticker.current); };
   }, []);
@@ -93,20 +98,26 @@ export default function FeatureTab() {
 
       {/* Mode chips */}
       <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none", marginBottom: 20 }}>
-        {MODES.map(m2 => (
-          <button key={m2.id} onClick={() => !startTime && setMode(m2.id)} style={{
-            flexShrink: 0,
-            padding: "5px 14px", borderRadius: 20, border: "1px solid",
-            borderColor: mode === m2.id ? phase.color : "var(--border)",
-            background: mode === m2.id ? `${phase.color}18` : "transparent",
-            color: mode === m2.id ? phase.color : "var(--text3)",
-            fontSize: 11, fontWeight: 700, cursor: startTime ? "default" : "pointer",
-            opacity: startTime && mode !== m2.id ? 0.35 : 1,
-            transition: "all 0.2s",
-          }}>
-            {m2.label}
-          </button>
-        ))}
+        {MODES.map(m2 => {
+          const locked = m2.pro && !isPro;
+          return (
+            <button key={m2.id} onClick={() => {
+              if (locked) { window.location.href = "/upgrade"; return; }
+              if (!startTime) setMode(m2.id);
+            }} style={{
+              flexShrink: 0,
+              padding: "5px 14px", borderRadius: 20, border: "1px solid",
+              borderColor: mode === m2.id ? phase.color : "var(--border)",
+              background: mode === m2.id ? `${phase.color}18` : "transparent",
+              color: locked ? "var(--text3)" : mode === m2.id ? phase.color : "var(--text3)",
+              fontSize: 11, fontWeight: 700, cursor: "pointer",
+              opacity: (startTime && mode !== m2.id) ? 0.35 : locked ? 0.5 : 1,
+              transition: "all 0.2s",
+            }}>
+              {locked ? "🔒 " : ""}{m2.label}
+            </button>
+          );
+        })}
       </div>
 
       {mode === "custom" && !startTime && (

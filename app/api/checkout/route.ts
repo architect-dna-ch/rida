@@ -7,12 +7,12 @@ export async function POST(req: NextRequest) {
   const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL!;
 
   const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
+    mode: "payment",
     payment_method_types: ["card"],
     customer_email: email || undefined,
     line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
     success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/upgrade`,
+    cancel_url: `${origin}/`,
     metadata: { plan: "pro" },
   });
 

@@ -46,15 +46,15 @@ export default function SettingsTab() {
         {s.plan === "free" ? (
           <>
             <p style={{ color: "var(--text2)", fontSize: 12, marginBottom: 12, lineHeight: 1.6 }}>
-              3 AI-Scans/Tag · Upgrade für unbegrenzte Scans, Mahlzeit-Planung & PDF-Export.
+              Upgrade für alle Fasten-Modi (20:4, 5:2, Sunnah, Custom) + History-Export.
             </p>
             <button onClick={handleUpgrade}
               style={{ width: "100%", background: "#14532d", border: "1px solid var(--green)", color: "var(--green)", padding: "10px 0", fontSize: 13, fontWeight: 700, borderRadius: 4, cursor: "pointer" }}>
-              Pro für CHF 3.95 / Monat →
+              Pro für CHF 2.– (einmalig) →
             </button>
           </>
         ) : (
-          <p style={{ color: "var(--green)", fontSize: 12 }}>✓ Unbegrenzte AI-Scans aktiv</p>
+          <p style={{ color: "var(--green)", fontSize: 12 }}>✓ Alle Fasten-Modi freigeschaltet</p>
         )}
       </section>
 
