@@ -6,9 +6,12 @@ import { getSettings, saveSettings } from "@/lib/db";
 function SuccessContent() {
   const params = useSearchParams();
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [type, setType] = useState<"pro" | "refill">("pro");
 
   useEffect(() => {
     const sessionId = params.get("session_id");
+    const t = params.get("type") === "refill" ? "refill" : "pro";
+    setType(t);
     if (!sessionId) { setStatus("error"); return; }
 
     fetch("/api/verify-session", {
@@ -20,20 +23,31 @@ function SuccessContent() {
       .then(async ({ token }) => {
         if (!token) throw new Error("no token");
         const s = await getSettings();
-        await saveSettings({ ...s, plan: "pro", proToken: token });
+        if (t === "refill") {
+          const expires = Date.now() + 30 * 24 * 60 * 60 * 1000;
+          await saveSettings({ ...s, proToken: token });
+          localStorage.setItem("rida_refill_expires", String(expires));
+        } else {
+          await saveSettings({ ...s, plan: "pro", proToken: token });
+        }
         setStatus("ok");
       })
       .catch(() => setStatus("error"));
   }, [params]);
 
+  const messages = {
+    pro:    { title: "Rida Pro freigeschaltet!", body: "Alle Fasten-Modi + Export aktiv." },
+    refill: { title: "AI Refill aktiv!", body: "Unbegrenzte AI-Scans für 30 Tage." },
+  };
+
   return (
     <div style={{ background: "var(--bg)", minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font)", padding: 24, textAlign: "center" }}>
-      {status === "loading" && <p style={{ color: "var(--text3)" }}>Abo wird aktiviert…</p>}
+      {status === "loading" && <p style={{ color: "var(--text3)" }}>Wird aktiviert…</p>}
       {status === "ok" && (
         <div>
           <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-          <h1 style={{ color: "var(--green)", fontSize: 20, marginBottom: 8 }}>Rida Pro freigeschaltet!</h1>
-          <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 24 }}>Rida Pro ist jetzt aktiv. Alle Modi freigeschaltet.</p>
+          <h1 style={{ color: "var(--green)", fontSize: 20, marginBottom: 8 }}>{messages[type].title}</h1>
+          <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 24 }}>{messages[type].body}</p>
           <a href="/" style={{ background: "#14532d", border: "1px solid var(--green)", color: "var(--green)", padding: "10px 24px", borderRadius: 4, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
             Zur App →
           </a>
@@ -41,7 +55,7 @@ function SuccessContent() {
       )}
       {status === "error" && (
         <div>
-          <p style={{ color: "var(--text2)", marginBottom: 16 }}>Etwas ist schiefgelaufen. Bitte kontaktiere uns.</p>
+          <p style={{ color: "var(--text2)", marginBottom: 16 }}>Etwas ist schiefgelaufen.</p>
           <a href="/" style={{ color: "var(--green)", fontSize: 13 }}>← Zurück</a>
         </div>
       )}

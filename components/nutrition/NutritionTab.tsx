@@ -82,9 +82,11 @@ export default function NutritionTab() {
     load();
   };
 
-  const todayScans = settings.aiScansDate === todayISO() ? settings.aiScansToday : 0;
-  const isPro      = settings.plan === "pro";
-  const totals     = sumMacros(meals);
+  const todayScans  = settings.aiScansDate === todayISO() ? settings.aiScansToday : 0;
+  const refillExp   = typeof window !== "undefined" ? Number(localStorage.getItem("rida_refill_expires") ?? 0) : 0;
+  const hasRefill   = refillExp > Date.now();
+  const isPro       = settings.plan === "pro" || hasRefill;
+  const totals      = sumMacros(meals);
   const g          = settings.goals;
   const pctCal     = Math.min(100, Math.round((totals.calories / g.calories) * 100));
 
@@ -151,14 +153,19 @@ export default function NutritionTab() {
       </div>
 
       {/* Free plan nudge */}
-      {!isPro && (
+      {settings.plan !== "pro" && !hasRefill && (
         <div style={{ background: "#1a1200", border: "1px solid #c4743a44", borderRadius: 4, padding: "8px 12px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ color: "#e8a44a", fontSize: 11 }}>
             Free: {todayScans}/{FREE_SCAN_LIMIT} AI-Scans heute
           </span>
           <a href="/upgrade" style={{ color: "var(--green)", fontSize: 11, textDecoration: "none", fontWeight: 700 }}>
-            Pro CHF 2.– →
+            AI Refill CHF 1.49/Mo →
           </a>
+        </div>
+      )}
+      {hasRefill && (
+        <div style={{ background: "#001a0a", border: "1px solid #22c55e44", borderRadius: 4, padding: "8px 12px", marginBottom: 12 }}>
+          <span style={{ color: "var(--green)", fontSize: 11 }}>✓ AI Refill aktiv · unbegrenzte Scans</span>
         </div>
       )}
 

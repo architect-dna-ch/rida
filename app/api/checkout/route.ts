@@ -3,17 +3,21 @@ import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-  const { email } = await req.json();
+  const { type } = await req.json();
   const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL!;
 
+  const isRefill = type === "refill";
+
   const session = await stripe.checkout.sessions.create({
-    mode: "payment",
+    mode: isRefill ? "subscription" : "payment",
     payment_method_types: ["card"],
-    customer_email: email || undefined,
-    line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
-    success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+    line_items: [{
+      price: isRefill ? process.env.STRIPE_REFILL_PRICE_ID! : process.env.STRIPE_PRICE_ID!,
+      quantity: 1,
+    }],
+    success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&type=${isRefill ? "refill" : "pro"}`,
     cancel_url: `${origin}/`,
-    metadata: { plan: "pro" },
+    metadata: { plan: isRefill ? "refill" : "pro" },
   });
 
   return NextResponse.json({ url: session.url });
