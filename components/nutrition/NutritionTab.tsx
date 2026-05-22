@@ -157,7 +157,7 @@ export default function NutritionTab() {
             Free: {todayScans}/{FREE_SCAN_LIMIT} AI-Scans heute
           </span>
           <a href="/upgrade" style={{ color: "var(--green)", fontSize: 11, textDecoration: "none", fontWeight: 700 }}>
-            Pro 3.95 CHF/Mo →
+            Pro CHF 2.– →
           </a>
         </div>
       )}

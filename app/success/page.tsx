@@ -32,8 +32,8 @@ function SuccessContent() {
       {status === "ok" && (
         <div>
           <div style={{ fontSize: 48, marginBottom: 16 }}>✓</div>
-          <h1 style={{ color: "var(--green)", fontSize: 20, marginBottom: 8 }}>Willkommen im Pro-Plan!</h1>
-          <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 24 }}>Unbegrenzte AI-Scans sind jetzt aktiv.</p>
+          <h1 style={{ color: "var(--green)", fontSize: 20, marginBottom: 8 }}>Rida Pro freigeschaltet!</h1>
+          <p style={{ color: "var(--text2)", fontSize: 13, marginBottom: 24 }}>Rida Pro ist jetzt aktiv. Alle Modi freigeschaltet.</p>
           <a href="/" style={{ background: "#14532d", border: "1px solid var(--green)", color: "var(--green)", padding: "10px 24px", borderRadius: 4, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
             Zur App →
           </a>

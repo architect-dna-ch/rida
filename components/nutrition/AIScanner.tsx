@@ -135,14 +135,14 @@ export default function AIScanner({ proToken, scansUsedToday, scanLimit, isPro, 
               Tageslimit erreicht
             </p>
             <p style={{ fontSize: 13, color: "var(--text2)", margin: "0 0 18px" }}>
-              {scanLimit} AI-Scans pro Tag im Free-Plan · Pro für unbegrenzte Scans
+              {scanLimit} AI-Scans pro Tag im Free-Plan
             </p>
             <a href="/upgrade" style={{
               display: "inline-block", padding: "11px 24px", borderRadius: 8,
               background: "var(--green)", color: "#000",
               fontSize: 13, fontWeight: 700, textDecoration: "none",
             }}>
-              Pro — CHF 3.95/Monat →
+              Pro — CHF 2.– (einmalig) →
             </a>
           </div>
         )}
