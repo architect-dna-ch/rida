@@ -8,7 +8,7 @@ workflows:
       cocoapods: default
       vars:
         BUNDLE_ID: ch.architectdna.rida
-        APP_STORE_APPLE_ID: 6748792462  # replace after creating App Store Connect listing
+        APP_STORE_APPLE_ID: 6772517201
       groups:
         - app_store_credentials  # API key group in Codemagic
     scripts:
