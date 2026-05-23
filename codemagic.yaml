@@ -9,8 +9,6 @@ workflows:
       vars:
         BUNDLE_ID: ch.architectdna.rida
         APP_STORE_APPLE_ID: 6772517201
-      groups:
-        - app_store_credentials  # API key group in Codemagic
     scripts:
       - name: Install dependencies
         script: npm ci
@@ -25,6 +23,17 @@ workflows:
 
       - name: Sync Capacitor
         script: npx cap sync ios
+
+      - name: Install CocoaPods
+        script: pod install
+        working_directory: ios/App
+
+      - name: Set up code signing
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
 
       - name: Set bundle version
         script: |
