@@ -5,7 +5,6 @@ workflows:
     environment:
       node: 22.11.0
       xcode: latest
-      cocoapods: default
       vars:
         BUNDLE_ID: ch.architectdna.rida
         APP_STORE_APPLE_ID: 6772517201
@@ -24,10 +23,6 @@ workflows:
       - name: Sync Capacitor
         script: npx cap sync ios
 
-      - name: Install CocoaPods
-        script: pod install
-        working_directory: ios/App
-
       - name: Set up code signing
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
@@ -45,7 +40,7 @@ workflows:
         script: |
           xcode-project use-profiles
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
+            --project "ios/App/App.xcodeproj" \
             --scheme App
 
     artifacts:
