@@ -2,9 +2,14 @@ workflows:
   ios-release:
     name: Rida iOS Release
     max_build_duration: 60
+    integrations:
+      app_store_connect: Architect-DNA CI
     environment:
       node: 22.11.0
       xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: ch.architectdna.rida
       vars:
         BUNDLE_ID: ch.architectdna.rida
         APP_STORE_APPLE_ID: 6772517201
@@ -22,13 +27,6 @@ workflows:
 
       - name: Sync Capacitor
         script: npx cap sync ios
-
-      - name: Set up code signing
-        script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
 
       - name: Set bundle version
         script: |
