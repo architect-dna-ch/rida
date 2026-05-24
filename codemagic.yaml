@@ -1,12 +1,116 @@
 workflows:
-  ios-release:
+  rida-app-store:
     name: Rida iOS Release
     max_build_duration: 60
     instance_type: mac_mini_m2
 
     environment:
       node: 22.11.0
+      xcode: latest
+      vars:
+        BUNDLE_ID: ch.architectdna.rida
+        TEAM_ID: V28MG47TZC
+        APP_STORE_APPLE_ID: 6772517201
+      groups:
+        - signing
+        - apple_credentials
 
     scripts:
-      - name: Test
-        script: echo "hello"
+      - name: Install dependencies
+        script: npm ci
+
+      - name: Build static export for Capacitor
+        script: |
+          mv app/api _api_routes_tmp
+          BUILD_TARGET=capacitor \
+            NEXT_PUBLIC_API_BASE=https://rida.architect-dna.ch \
+            npx next build
+          mv _api_routes_tmp app/api
+
+      - name: Sync Capacitor
+        script: npx cap sync ios
+
+      - name: Install signing assets
+        script: |
+          if [ -z "$DIST_P12_BASE64" ]; then echo "ERROR: DIST_P12_BASE64 is empty"; exit 1; fi
+          if [ -z "$PROVISIONING_PROFILE_BASE64" ]; then echo "ERROR: PROVISIONING_PROFILE_BASE64 is empty"; exit 1; fi
+
+          security create-keychain -p cmpass build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p cmpass build.keychain
+          security set-keychain-settings -t 7200 -u build.keychain
+
+          echo "$DIST_P12_BASE64" | base64 --decode > /tmp/dist.p12
+          security import /tmp/dist.p12 -k build.keychain -P cmpass -T /usr/bin/codesign -T /usr/bin/xcodebuild
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k cmpass build.keychain
+
+          PP_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PP_DIR"
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PP_DIR/08345fea-1edf-42fa-8aad-91138c84c895.mobileprovision"
+
+      - name: Resolve Swift packages
+        script: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App
+
+      - name: Set bundle version
+        script: |
+          pip3 install PyJWT cryptography -q
+          python3 << 'PYEOF'
+          import jwt, time, json, os
+          from urllib.request import urlopen, Request
+          key = os.environ['ASC_PRIVATE_KEY']
+          with open('/tmp/asc.p8', 'w') as f: f.write(key)
+          token = jwt.encode(
+            {'iss': os.environ['ASC_ISSUER_ID'], 'iat': int(time.time()), 'exp': int(time.time())+300, 'aud': 'appstoreconnect-v1'},
+            open('/tmp/asc.p8').read(), algorithm='ES256', headers={'kid': os.environ['ASC_KEY_ID']}
+          )
+          req = Request(f"https://api.appstoreconnect.apple.com/v1/apps/{os.environ['APP_STORE_APPLE_ID']}/appStoreVersions",
+            headers={'Authorization': f'Bearer {token}'})
+          try:
+            versions = json.loads(urlopen(req).read())
+            builds = [v['attributes'].get('buildNumber','0') for v in versions.get('data',[])]
+            latest = max([int(b) for b in builds if b.isdigit()], default=0)
+          except: latest = 0
+          next_build = latest + 1
+          print(f"Next build: {next_build}")
+          with open('/tmp/next_build.txt', 'w') as f: f.write(str(next_build))
+          PYEOF
+          agvtool new-version -all $(cat /tmp/next_build.txt)
+        working_directory: ios/App
+
+      - name: Build IPA
+        script: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -archivePath build/App.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            PROVISIONING_PROFILE_SPECIFIER="Rida AppStore Distribution" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            DEVELOPMENT_TEAM=$TEAM_ID
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportOptionsPlist ios/ExportOptions.plist \
+            -exportPath build/
+
+    artifacts:
+      - build/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - besonnet.kl2@gmail.com
+      app_store_connect:
+        api_key: $ASC_PRIVATE_KEY
+        key_id: $ASC_KEY_ID
+        issuer_id: $ASC_ISSUER_ID
+        submit_to_testflight: true
+        beta_groups:
+          - "Internal Testers"
