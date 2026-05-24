@@ -15,7 +15,7 @@
   <key>provisioningProfiles</key>
   <dict>
     <key>ch.architectdna.rida</key>
-    <string>Rida Distribution</string>
+    <string>Rida AppStore Distribution</string>
   </dict>
 </dict>
 </plist>
