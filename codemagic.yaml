@@ -104,10 +104,6 @@ workflows:
       - /tmp/xcodebuild_logs/*.log
 
     publishing:
-      app_store_connect:
-        api_key: $ASC_PRIVATE_KEY
-        key_id: $ASC_KEY_ID
-        issuer_id: $ASC_ISSUER_ID
-        submit_to_testflight: true
-        beta_groups:
-          - "Internal Testers"
+      email:
+        recipients:
+          - besonnet.kl2@gmail.com
