@@ -6,13 +6,15 @@ const SalahTab     = dynamic(() => import("@/components/salah/SalahTab"),       
 const NutritionTab = dynamic(() => import("@/components/nutrition/NutritionTab"), { ssr: false });
 const FeatureTab   = dynamic(() => import("@/components/feature/FeatureTab"),     { ssr: false });
 const SettingsTab  = dynamic(() => import("@/components/SettingsTab"),             { ssr: false });
+const YawmTab      = dynamic(() => import("@/components/yawm/YawmTab"),           { ssr: false });
 
-type Tab = "salah" | "nutrition" | "feature" | "settings";
+type Tab = "salah" | "nutrition" | "feature" | "yawm" | "settings";
 
 const TABS: { id: Tab; label: string; arabic: string; icon: string }[] = [
   { id: "salah",     label: "Salah",     arabic: "صلاة",    icon: "🕌" },
   { id: "nutrition", label: "Ernährung", arabic: "تغذية",   icon: "🥗" },
   { id: "feature",   label: "Fast",      arabic: "صيام",    icon: "⏱" },
+  { id: "yawm",      label: "Yawm",      arabic: "يوم",     icon: "✦" },
   { id: "settings",  label: "Einst.",    arabic: "إعدادات", icon: "⚙" },
 ];
 
@@ -53,6 +55,7 @@ export default function RidaApp() {
         {tab === "salah"     && <SalahTab />}
         {tab === "nutrition" && <NutritionTab />}
         {tab === "feature"   && <FeatureTab />}
+        {tab === "yawm"      && <YawmTab />}
         {tab === "settings"  && <SettingsTab />}
       </main>
 
