@@ -18,7 +18,7 @@ jobs:
           - device: "iPhone 17"
             os: "26.5"
             slug: "iphone-61"
-          - device: "iPad Pro 13-inch (M4)"
+          - device: "iPad Pro 13-inch (M5)"
             os: "26.5"
             slug: "ipad-13"
 
@@ -115,6 +115,10 @@ jobs:
           PP_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
           mkdir -p "$PP_DIR"
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PP_DIR/08345fea-1edf-42fa-8aad-91138c84c895.mobileprovision"
+
+      - name: Bump build number
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" ios/App/App/Info.plist
 
       - name: Resolve Swift packages
         run: |
