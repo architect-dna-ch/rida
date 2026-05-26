@@ -7,15 +7,16 @@ const NutritionTab = dynamic(() => import("@/components/nutrition/NutritionTab")
 const FeatureTab   = dynamic(() => import("@/components/feature/FeatureTab"),     { ssr: false });
 const SettingsTab  = dynamic(() => import("@/components/SettingsTab"),             { ssr: false });
 const YawmTab      = dynamic(() => import("@/components/yawm/YawmTab"),           { ssr: false });
+const DhikrTab     = dynamic(() => import("@/components/dhikr/DhikrTab"),         { ssr: false });
 
-type Tab = "salah" | "nutrition" | "feature" | "yawm" | "settings";
+type Tab = "salah" | "nutrition" | "feature" | "yawm" | "dhikr" | "settings";
 
 const TABS: { id: Tab; label: string; arabic: string; icon: string; color: string }[] = [
-  { id: "salah",     label: "Salah",     arabic: "صلاة",    icon: "🕌", color: "#00c9a7" },
-  { id: "nutrition", label: "Ernährung", arabic: "تغذية",   icon: "🥗", color: "#34d399" },
-  { id: "feature",   label: "Fast",      arabic: "صيام",    icon: "⏱",  color: "#60a5fa" },
-  { id: "yawm",      label: "Yawm",      arabic: "يوم",     icon: "✦",  color: "#a78bfa" },
-  { id: "settings",  label: "Einst.",    arabic: "إعدادات", icon: "⚙",  color: "#f472b6" },
+  { id: "salah",     label: "Salah",  arabic: "صلاة",    icon: "🕌", color: "#00c9a7" },
+  { id: "feature",   label: "Fast",   arabic: "صيام",    icon: "⏱",  color: "#60a5fa" },
+  { id: "dhikr",     label: "Dhikr",  arabic: "ذكر",     icon: "📿", color: "#fbbf24" },
+  { id: "yawm",      label: "Yawm",   arabic: "يوم",     icon: "✦",  color: "#a78bfa" },
+  { id: "settings",  label: "More",   arabic: "إعدادات", icon: "⚙",  color: "#f472b6" },
 ];
 
 export default function RidaApp() {
@@ -89,6 +90,7 @@ export default function RidaApp() {
         {tab === "nutrition" && <NutritionTab />}
         {tab === "feature"   && <FeatureTab />}
         {tab === "yawm"      && <YawmTab />}
+        {tab === "dhikr"     && <DhikrTab />}
         {tab === "settings"  && <SettingsTab />}
       </main>
 

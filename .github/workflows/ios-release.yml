@@ -70,8 +70,9 @@ jobs:
             TEST_RUNNER_SIMULATOR_SCREENSHOTS_DIR="$SHOTS" || true
 
           if [ -z "$(ls -A $SHOTS 2>/dev/null)" ] && [ -d "$RESULT" ]; then
-            echo "Extracting from xcresult..."
-            python3 ios/extract_screenshots.py "$SHOTS" "$RESULT" || true
+            echo "Extracting PNGs from xcresult bundle..."
+            find "$RESULT" -name "*.png" -exec cp {} "$SHOTS/" \;
+            echo "Found $(ls $SHOTS/*.png 2>/dev/null | wc -l) PNGs"
           fi
 
           ls -la "$SHOTS/"
