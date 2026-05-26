@@ -61,10 +61,10 @@ jobs:
             -scheme App \
             -destination "platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.os }}" \
             -only-testing:AppUITests/ScreenshotTests \
+            -testenv SIMULATOR_SCREENSHOTS_DIR=$RUNNER_TEMP/screenshots/${{ matrix.slug }} \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            SIMULATOR_SCREENSHOTS_DIR=$RUNNER_TEMP/screenshots/${{ matrix.slug }}
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
