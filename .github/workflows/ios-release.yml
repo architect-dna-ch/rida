@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - device: "iPhone 16 Plus"
+          - device: "iPhone 17 Pro Max"
             os: "26.5"
             slug: "iphone-69"
-          - device: "iPhone 16"
+          - device: "iPhone 17"
             os: "26.5"
             slug: "iphone-61"
           - device: "iPad Pro 13-inch (M4)"
