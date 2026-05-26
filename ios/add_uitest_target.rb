@@ -39,25 +39,4 @@ unless proj.targets.any? { |t| t.name == 'AppUITests' }
   puts "AppUITests target added."
 end
 
-# Wire into App scheme test action
-scheme_path = Xcodeproj::XCScheme.shared_data_dir(PROJECT_PATH) + 'App.xcscheme'
-if File.exist?(scheme_path)
-  scheme = Xcodeproj::XCScheme.new(scheme_path)
-else
-  scheme = Xcodeproj::XCScheme.new
-end
-
-test_target = proj.targets.find { |t| t.name == 'AppUITests' }
-already_added = scheme.test_action.testables.any? do |t|
-  t.buildable_references.any? { |r| r.target_name == 'AppUITests' }
-end
-
-unless already_added
-  testable = Xcodeproj::XCScheme::TestAction::TestableReference.new(test_target)
-  testable.skipped = false
-  scheme.test_action.testables << testable
-  scheme.save_as(PROJECT_PATH, 'App', true)
-  puts "AppUITests wired into App scheme test action."
-end
-
 puts "Done."
