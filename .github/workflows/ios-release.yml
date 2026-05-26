@@ -6,9 +6,87 @@ on:
   workflow_dispatch:
 
 jobs:
+  screenshots:
+    runs-on: macos-26
+    timeout-minutes: 40
+    strategy:
+      matrix:
+        include:
+          - device: "iPhone 16 Pro Max"
+            os: "19.0"
+            slug: "iphone-69"
+          - device: "iPhone 16"
+            os: "19.0"
+            slug: "iphone-61"
+          - device: "iPad Pro 13-inch (M4)"
+            os: "19.0"
+            slug: "ipad-13"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static export for Capacitor
+        run: |
+          mv app/api _api_routes_tmp
+          BUILD_TARGET=capacitor NEXT_PUBLIC_API_BASE=https://rida.architect-dna.ch npx next build
+          mv _api_routes_tmp app/api
+
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      - name: Add UITest target
+        run: |
+          gem install xcodeproj --no-document 2>/dev/null || true
+          ruby ios/add_uitest_target.rb
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App
+
+      - name: Build for testing
+        run: |
+          xcodebuild build-for-testing \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -destination "platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.os }}" \
+            -derivedDataPath $RUNNER_TEMP/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture screenshots
+        run: |
+          mkdir -p $RUNNER_TEMP/screenshots/${{ matrix.slug }}
+          xcodebuild test-without-building \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -destination "platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.os }}" \
+            -derivedDataPath $RUNNER_TEMP/DerivedData \
+            -only-testing:AppUITests/ScreenshotTests \
+            SIMULATOR_SCREENSHOTS_DIR=$RUNNER_TEMP/screenshots/${{ matrix.slug }}
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots-${{ matrix.slug }}
+          path: ${{ runner.temp }}/screenshots/${{ matrix.slug }}/
+          retention-days: 30
+
   build:
     runs-on: macos-26
     timeout-minutes: 60
+    needs: screenshots
 
     steps:
       - uses: actions/checkout@v4
