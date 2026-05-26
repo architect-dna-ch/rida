@@ -123,9 +123,9 @@ export default function NutritionTab() {
                 <span style={{ color: "var(--text3)", fontSize: 11 }}>{pctCal}% Ziel</span>
               </div>
               {[
-                { label: "Protein",        val: totals.protein, goal: g.protein, color: "#4f6fa8" },
-                { label: "Kohlenhydrate",  val: totals.carbs,   goal: g.carbs,   color: "#e8a44a" },
-                { label: "Fett",           val: totals.fat,     goal: g.fat,     color: "#9b4a82" },
+                { label: "Protein",        val: totals.protein, goal: g.protein, color: "#60a5fa" },
+                { label: "Kohlenhydrate",  val: totals.carbs,   goal: g.carbs,   color: "#fbbf24" },
+                { label: "Fett",           val: totals.fat,     goal: g.fat,     color: "#a78bfa" },
               ].map(m => (
                 <div key={m.label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                   <span style={{ color: "var(--text3)", fontSize: 10, width: 100 }}>{m.label}</span>
@@ -143,11 +143,11 @@ export default function NutritionTab() {
       {/* Action buttons */}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <button onClick={() => setView("scan")}
-          style={{ flex: 1, background: "#14532d", border: "1px solid var(--green)", color: "var(--green)", padding: "10px 0", fontSize: 12, borderRadius: 4, cursor: "pointer", fontWeight: 700 }}>
+          style={{ flex: 1, background: "rgba(0,201,167,.1)", border: "1px solid rgba(0,201,167,.3)", color: "var(--teal)", padding: "12px 0", fontSize: 13, borderRadius: 12, cursor: "pointer", fontWeight: 700 }}>
           📸 AI-Scan
         </button>
         <button onClick={() => setView("search")}
-          style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--border)", color: "var(--text2)", padding: "10px 0", fontSize: 12, borderRadius: 4, cursor: "pointer" }}>
+          style={{ flex: 1, background: "var(--bg3)", border: "1px solid var(--border2)", color: "var(--text2)", padding: "12px 0", fontSize: 13, borderRadius: 12, cursor: "pointer" }}>
           🔍 Suchen
         </button>
       </div>

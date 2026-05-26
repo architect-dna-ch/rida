@@ -37,10 +37,13 @@ export async function POST(req: NextRequest) {
       }),
     });
     const data = await res.json();
+    if (!res.ok) return NextResponse.json({ error: data.error?.message || "Groq error" }, { status: 500 });
     const text = data.choices?.[0]?.message?.content || "{}";
-    const clean = text.replace(/```json|```/g, "").trim();
-    return NextResponse.json(JSON.parse(clean));
-  } catch {
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    // extract first JSON object regardless of surrounding markdown
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return NextResponse.json({ error: "No JSON in response" }, { status: 500 });
+    return NextResponse.json(JSON.parse(match[0]));
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }

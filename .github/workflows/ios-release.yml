@@ -53,26 +53,17 @@ jobs:
             -project ios/App/App.xcodeproj \
             -scheme App
 
-      - name: Build for testing
-        run: |
-          xcodebuild build-for-testing \
-            -project ios/App/App.xcodeproj \
-            -scheme App \
-            -destination "platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.os }}" \
-            -derivedDataPath $RUNNER_TEMP/DerivedData \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-
       - name: Capture screenshots
         run: |
           mkdir -p $RUNNER_TEMP/screenshots/${{ matrix.slug }}
-          xcodebuild test-without-building \
+          xcodebuild test \
             -project ios/App/App.xcodeproj \
             -scheme App \
             -destination "platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.os }}" \
-            -derivedDataPath $RUNNER_TEMP/DerivedData \
             -only-testing:AppUITests/ScreenshotTests \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             SIMULATOR_SCREENSHOTS_DIR=$RUNNER_TEMP/screenshots/${{ matrix.slug }}
 
       - name: Upload screenshots

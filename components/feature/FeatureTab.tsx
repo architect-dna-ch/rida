@@ -13,12 +13,12 @@ const MODES: { id: FastMode; label: string; sub: string; hours: number; pro: boo
 ];
 
 function getPhase(elapsedH: number): { label: string; color: string } {
-  if (elapsedH < 4)  return { label: "Digesting",   color: "#a3a3a3" };
-  if (elapsedH < 8)  return { label: "Sugar Burn",  color: "#e8a44a" };
-  if (elapsedH < 12) return { label: "Fat Burn",    color: "#4f6fa8" };
-  if (elapsedH < 16) return { label: "Ketosis",     color: "#9b4a82" };
-  if (elapsedH < 18) return { label: "Autophagy",   color: "#2d9e9e" };
-  return               { label: "Deep Fast",   color: "#22c55e" };
+  if (elapsedH < 4)  return { label: "Digesting",  color: "rgba(240,240,248,.35)" };
+  if (elapsedH < 8)  return { label: "Sugar Burn", color: "#fbbf24" };
+  if (elapsedH < 12) return { label: "Fat Burn",   color: "#60a5fa" };
+  if (elapsedH < 16) return { label: "Ketosis",    color: "#a78bfa" };
+  if (elapsedH < 18) return { label: "Autophagy",  color: "#f472b6" };
+  return               { label: "Deep Fast",  color: "#00c9a7" };
 }
 
 function fmt(ms: number) {
@@ -180,15 +180,39 @@ export default function FeatureTab() {
       <button onClick={startTime ? stop : start} style={{
         width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
         fontWeight: 800, fontSize: 14, letterSpacing: "0.08em", textTransform: "uppercase",
-        background: startTime ? (done ? "#22c55e" : "rgba(239,68,68,0.12)") : `linear-gradient(135deg, var(--green), #16a34a)`,
-        color: startTime ? (done ? "#fff" : "#ef4444") : "#fff",
+        background: startTime ? (done ? "rgba(0,201,167,.2)" : "rgba(239,68,68,0.1)") : `linear-gradient(135deg, var(--teal), rgba(0,201,167,.7))`,
+        color: startTime ? (done ? "var(--teal)" : "#f87171") : "#080b14",
         cursor: "pointer",
-        boxShadow: startTime ? "none" : "0 4px 20px rgba(34,197,94,0.25)",
+        boxShadow: startTime ? "none" : "0 4px 24px rgba(0,201,167,.2)",
         transition: "all 0.2s",
         marginBottom: 20,
       }}>
         {startTime ? (done ? "Complete ✓" : "Stop Fast") : `Start ${targetHours}h Fast`}
       </button>
+
+      {/* Share button — only when done */}
+      {done && (
+        <button
+          onClick={() => {
+            const text = `Just completed a ${targetHours}h fast ⏱\n\nTracked with Rida — Muslim lifestyle companion\nrida.architect-dna.ch`;
+            if (navigator.share) {
+              navigator.share({ text });
+            } else {
+              navigator.clipboard.writeText(text);
+              alert("Copied to clipboard!");
+            }
+          }}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            width: "100%", padding: "12px 0", borderRadius: 14, marginBottom: 20,
+            background: "rgba(255,255,255,.04)", border: "1px solid var(--border2)",
+            color: "var(--text2)", fontSize: 13, fontWeight: 700,
+            cursor: "pointer", transition: "all .15s",
+          }}
+        >
+          ↑ Share my fast
+        </button>
+      )}
 
       {/* 7-day strip */}
       <div style={{ marginBottom: 20 }}>
