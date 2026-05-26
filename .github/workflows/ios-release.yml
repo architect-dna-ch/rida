@@ -58,6 +58,7 @@ jobs:
           SHOTS=$RUNNER_TEMP/screenshots/${{ matrix.slug }}
           RESULT=$RUNNER_TEMP/test.xcresult
           mkdir -p "$SHOTS"
+
           xcodebuild test \
             -project ios/App/App.xcodeproj \
             -scheme App \
@@ -67,12 +68,20 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            TEST_RUNNER_SIMULATOR_SCREENSHOTS_DIR="$SHOTS" || true
+            TEST_RUNNER_SIMULATOR_SCREENSHOTS_DIR="$SHOTS" 2>&1 | tail -60 || true
 
-          if [ -z "$(ls -A $SHOTS 2>/dev/null)" ] && [ -d "$RESULT" ]; then
-            echo "Extracting PNGs from xcresult bundle..."
-            find "$RESULT" -name "*.png" -exec cp {} "$SHOTS/" \;
-            echo "Found $(ls $SHOTS/*.png 2>/dev/null | wc -l) PNGs"
+          echo "=== direct shots ==="
+          ls -la "$SHOTS/" 2>/dev/null || echo "(empty)"
+
+          # xcresult fallback: Xcode 26 stores attachments as .heic — convert with sips
+          if [ -z "$(ls -A "$SHOTS" 2>/dev/null)" ] && [ -d "$RESULT" ]; then
+            echo "=== extracting from xcresult ==="
+            find "$RESULT" \( -name "*.png" -o -name "*.heic" \) | while read -r f; do
+              name=$(basename "$f" | sed 's/\.[^.]*$//')
+              sips -s format png "$f" --out "$SHOTS/${name}.png" 2>/dev/null \
+                || cp "$f" "$SHOTS/$(basename "$f")"
+            done
+            echo "extracted: $(ls "$SHOTS" 2>/dev/null | wc -l | tr -d ' ') files"
           fi
 
           ls -la "$SHOTS/"
