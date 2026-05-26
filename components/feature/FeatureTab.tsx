@@ -193,14 +193,11 @@ export default function FeatureTab() {
       {/* Share button — only when done */}
       {done && (
         <button
-          onClick={() => {
+          onClick={async () => {
             const text = `Just completed a ${targetHours}h fast ⏱\n\nTracked with Rida — Muslim lifestyle companion\nrida.architect-dna.ch`;
-            if (navigator.share) {
-              navigator.share({ text });
-            } else {
-              navigator.clipboard.writeText(text);
-              alert("Copied to clipboard!");
-            }
+            await fetch("/api/tweet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+            if (navigator.share) navigator.share({ text });
+            else { navigator.clipboard.writeText(text); alert("Posted & copied!"); }
           }}
           style={{
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,

@@ -205,14 +205,11 @@ export default function YawmTab() {
                 </button>
                 {morning.ayah && (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       const text = `${morning.ayah.arabic}\n\n"${morning.ayah.translation}"\n— ${morning.ayah.reference}\n\nrida.architect-dna.ch`;
-                      if (navigator.share) {
-                        navigator.share({ text });
-                      } else {
-                        navigator.clipboard.writeText(text);
-                        alert("Copied!");
-                      }
+                      await fetch("/api/tweet", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+                      if (navigator.share) navigator.share({ text });
+                      else { navigator.clipboard.writeText(text); alert("Posted & copied!"); }
                     }}
                     style={{
                       flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
