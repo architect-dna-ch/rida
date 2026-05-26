@@ -55,16 +55,49 @@ jobs:
 
       - name: Capture screenshots
         run: |
-          mkdir -p $RUNNER_TEMP/screenshots/${{ matrix.slug }}
+          SHOTS=$RUNNER_TEMP/screenshots/${{ matrix.slug }}
+          RESULT=$RUNNER_TEMP/test.xcresult
+          mkdir -p "$SHOTS"
           xcodebuild test \
             -project ios/App/App.xcodeproj \
             -scheme App \
             -destination "platform=iOS Simulator,name=${{ matrix.device }},OS=${{ matrix.os }}" \
             -only-testing:AppUITests/ScreenshotTests \
+            -resultBundlePath "$RESULT" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            TEST_RUNNER_SIMULATOR_SCREENSHOTS_DIR=$RUNNER_TEMP/screenshots/${{ matrix.slug }}
+            TEST_RUNNER_SIMULATOR_SCREENSHOTS_DIR="$SHOTS" || true
+
+          # Extract attachments from xcresult if direct writes didn't work
+          if [ -z "$(ls -A $SHOTS 2>/dev/null)" ] && [ -d "$RESULT" ]; then
+            echo "Extracting from xcresult..."
+            xcrun xcresulttool get --path "$RESULT" --format json 2>/dev/null | \
+              python3 -c "
+import json,sys,subprocess,os,base64
+d=json.load(sys.stdin)
+shots='$SHOTS'
+n=0
+def walk(obj):
+    global n
+    if isinstance(obj,dict):
+        if obj.get('_type',{}).get('_name')=='ActionTestAttachment':
+            fname=obj.get('filename',{}).get('_value','')
+            if fname.endswith('.png'):
+                ref=obj.get('payloadRef',{}).get('id',{}).get('_value','')
+                if ref:
+                    out=os.path.join(shots,f'{n:02d}_{fname}')
+                    subprocess.run(['xcrun','xcresulttool','export','--path','$RESULT','--id',ref,'--output-path',out,'--type','file'])
+                    n+=1
+        for v in obj.values(): walk(v)
+    elif isinstance(obj,list):
+        for v in obj: walk(v)
+walk(d)
+print(f'Extracted {n} screenshots')
+" 2>/dev/null || true
+          fi
+
+          ls -la "$SHOTS/"
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
